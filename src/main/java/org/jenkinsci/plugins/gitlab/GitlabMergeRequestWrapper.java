@@ -78,13 +78,13 @@ public class GitlabMergeRequestWrapper {
 
         if (title == null || title.trim().isEmpty()) {
             title = gitlabMergeRequest.getTitle();
-            
+
             if (title == null) { title = ""; }
         }
 
         if (description == null || description.trim().isEmpty()) {
             description = gitlabMergeRequest.getDescription();
-            
+
             if (description == null) { description = ""; }
         }
 
@@ -97,7 +97,7 @@ public class GitlabMergeRequestWrapper {
                 return;
             }
         }
-        
+
         try {
             GitlabAPI api = builder.getGitlab().get();
             GitlabCommit latestCommit = getLatestCommit(gitlabMergeRequest, api);
@@ -105,7 +105,7 @@ public class GitlabMergeRequestWrapper {
             if (latestCommit == null) { // the source branch has been removed
                 return;
             }
-            
+
             Map<String, String> customParameters = getSpecifiedCustomParameters(gitlabMergeRequest, api);
             build(customParameters, latestCommit.getId(), gitlabMergeRequest);
         } catch (IOException e) {
@@ -205,7 +205,7 @@ public class GitlabMergeRequestWrapper {
     public String getTargetBranch() {
         return targetBranch;
     }
-    
+
 	public GitlabNote createNote(String message, boolean shouldClose, boolean shouldMerge) {
         GitlabMergeRequest mergeRequest = new GitlabMergeRequest();
         mergeRequest.setId(id);
@@ -216,21 +216,21 @@ public class GitlabMergeRequestWrapper {
             if (shouldClose || shouldMerge) {
                 String tailUrl = "";
                 if (shouldClose) {
-                    tailUrl = GitlabProject.URL + "/" + project.getId() + "/merge_request/" + id + "?state_event=close";
+                    tailUrl = GitlabProject.URL + "/" + project.getId() + "/merge_request/" + iid + "?state_event=close";
                 }
                 if (shouldMerge) {
-                    tailUrl = GitlabProject.URL + "/" + project.getId() + "/merge_request/" + id + "/merge";
+                    tailUrl = GitlabProject.URL + "/" + project.getId() + "/merge_request/" + iid + "/merge";
                 }
                 builder.getGitlab().get().retrieve().method("PUT").to(tailUrl, Void.class);
             }
         } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Failed to automatically merge/close the merge request " + id, e);
+            LOGGER.log(Level.SEVERE, "Failed to automatically merge/close the merge request " + iid, e);
         }
 
         try {
             return builder.getGitlab().get().createNote(mergeRequest, message);
         } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Failed to create note for merge request " + id, e);
+            LOGGER.log(Level.SEVERE, "Failed to create note for merge request " + iid, e);
             return null;
         }
 
@@ -240,7 +240,7 @@ public class GitlabMergeRequestWrapper {
 
         try {
             GitlabAPI api = builder.getGitlab().get();
-            GitlabMergeRequest mergeRequest = api.getMergeRequest(project, id);
+            GitlabMergeRequest mergeRequest = api.getMergeRequest(project, iid);
 
             return builder.getGitlab().changeCommitStatus(project.getId(), mergeRequest.getSourceBranch(), commitHash, commitStatus, targetUrl);
         } catch (IOException e) {
@@ -264,10 +264,10 @@ public class GitlabMergeRequestWrapper {
                 this.sourceProject.getId(),
                 project.getId(),
                 commitHash);
-        
+
 		try {
 			String message = builder.getBuilds().build(cause, customParameters, project, mergeRequest);
-			
+
 			if (builder.isEnableBuildTriggeredMessage() && StringUtils.isNotBlank(message)) {
 	            createNote(message, false, false);
 	            LOGGER.log(Level.INFO, message);
